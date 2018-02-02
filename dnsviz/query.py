@@ -766,6 +766,14 @@ class DNSQueryHandler:
         self.params['wait'] = 0
 
     def get_query_transport_meta(self):
+        # TODO make this thing not a hack.
+        print('nuking question section')
+        print(self.request.question)
+        self.request.question = []
+
+        print('query:')
+        print(self.request)
+
         return transport.DNSQueryTransportMeta(self.request.to_wire(), self._server, self.params['tcp'], self.get_timeout(),
                                                self.query.odd_ports.get(self._server, self.query.port), src=self._client, sport=self.params['sport'])
 
@@ -1674,6 +1682,14 @@ class RecursiveEDNS0Query(EDNS0Query, RecursiveDNSQuery):
     pass
 
 
+class DnsCookieQuery(EDNS0Query):
+    '''A standard query requesting the server cookie.'''
+
+    cookie = b'_entropy'
+    edns_options = EDNS0Query.edns_options + \
+        [dns.edns.GenericOption(dns.edns.COOKIE, cookie)]
+
+
 class DNSSECQuery(EDNS0Query):
     '''A standard query requesting DNSSEC records.'''
 
@@ -2062,6 +2078,15 @@ class RecursiveEDNSFlagDiagnosticQuery(SimpleDNSQuery):
     lifetime = 25.0
 
 
+def show_cookie(message):
+    print('showing cookie for msg %s' % message)
+    for opt in message.options:
+        print('processing opt %s' % opt)
+        if opt is None or opt.data is None:
+            continue
+        print('   opts: ', len(opt.data), [c for c in opt.data])
+
+
 def main():
     import json
     import sys
@@ -2086,7 +2111,7 @@ def main():
         cls = RecursiveDiagnosticQuery
     elif '-z' in opts:
         print('using z')
-        cls = RobustDNSSECQuery
+        cls = DnsCookieQuery
     else:
         cls = DiagnosticQuery
     d = cls(dns.name.from_text(args[0]), dns.rdatatype.from_text(
@@ -2102,6 +2127,8 @@ def main():
                 if response.message is not None:
                     print('   from %s: %s (%d bytes in %dms)' % (server, repr(response.message), len(
                         response.message.to_wire()), int(response.response_time*1000)))
+                    show_cookie(response.message)
+
                 else:
                     print('   from %s: (ERR: %s) (%dms)' % (server, repr(
                         response.error), int(response.response_time*1000)))

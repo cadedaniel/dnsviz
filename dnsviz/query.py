@@ -1,4 +1,3 @@
-#
 # This file is a part of DNSViz, a tool suite for DNS/DNSSEC monitoring,
 # analysis, and visualization.  This file (or some portion thereof) is a
 # derivative work authored by VeriSign, Inc., and created in 2014, based on
@@ -1923,13 +1922,13 @@ def main():
     import json
     import sys
     import getopt
-
+    print('yeah, you are running this with your changes.')
     def usage():
         sys.stderr.write('Usage: %s [-r] [-j] <name> <type> <server> [<server>...]\n' % (sys.argv[0]))
         sys.exit(1)
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'rj')
+        opts, args = getopt.getopt(sys.argv[1:], 'rjz')
         opts = dict(opts)
     except getopt.error:
         usage()
@@ -1939,6 +1938,9 @@ def main():
 
     if '-r' in opts:
         cls = RecursiveDiagnosticQuery
+    elif '-z' in opts:
+        print('using z')
+        cls = RobustDNSSECQuery
     else:
         cls = DiagnosticQuery
     d = cls(dns.name.from_text(args[0]), dns.rdatatype.from_text(args[1]), dns.rdataclass.IN, [IPAddr(x) for x in args[2:]])
